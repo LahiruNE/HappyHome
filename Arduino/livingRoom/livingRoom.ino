@@ -11,6 +11,8 @@ DHT dht(DHTPIN, DHTTYPE);
 
 const char* ssid = "JaraWifi";
 const char* password = "jaraz12345";
+
+const char* host = "www.txtlocal.com";
 // Create an instance of the server
 // specify the port to listen on as an argument
 WiFiServer server(80);
@@ -41,7 +43,7 @@ void setup() {
   pinMode(5, OUTPUT);//fan
   pinMode(14, INPUT);//PIR
   pinMode(12, OUTPUT);//PIR_Relay
-  pinMode(3, OUTPUT);//Temp_Relay
+  pinMode(16, OUTPUT);//Temp_Relay
   digitalWrite(2, 0);
   digitalWrite(12, 0);//@ the begining PIR is not active
   digitalWrite(3, 1);//From the begining temperature & humidity sensor is running
@@ -209,10 +211,10 @@ void loop() {
     digitalWrite(12, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
   else if (req.indexOf("/living/temp/0") != -1){
-    digitalWrite(3, 0);
+    digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
   else if (req.indexOf("/living/temp/1") != -1){
-    digitalWrite(3, 1);
+    digitalWrite(16, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
   else if (req.indexOf("/living/notification") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}

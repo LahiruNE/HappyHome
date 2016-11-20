@@ -3,7 +3,7 @@
 const char* ssid     = "JaraWifi";
 const char* password = "jaraz12345";
 
-const char* host = "192.168.43.231";
+const char* host = "192.168.43.185";
 
 void setup() {
   Serial.begin(115200);
@@ -47,7 +47,7 @@ void loop() {
   }
   
  // This will send the request to the server
-  client.print(String("GET ") + "/garden/light" + " HTTP/1.1\r\n" +
+  client.print(String("GET ") + "/living/door/1" + " HTTP/1.1\r\n" +
                "Host: " + host + "\r\n" + 
                "Connection: close\r\n\r\n");
   unsigned long timeout = millis();
