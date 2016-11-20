@@ -77,4 +77,10 @@ def temp_off():
     conn.request("GET", "/living/temp/0")
     r1 = conn.getresponse()
     print r1.read()
+
+def notification():
+    conn = httplib.HTTPConnection("192.168.43.231")
+    conn.request("GET", "/living/notification")
+    r1 = conn.getresponse()
+    print r1.read()
     

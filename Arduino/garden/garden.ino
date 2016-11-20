@@ -1,55 +1,43 @@
-//#include <TimeLib.h>
+#include <TimeLib.h>
 #include <ESP8266WiFi.h>
-//#include <WiFiUdp.h>
-
-//#include "DHT.h"
-
-//#define DHTPIN 13//temp&humid
-//#define DHTTYPE DHT22 
-
-//DHT dht(DHTPIN, DHTTYPE);
+#include <WiFiUdp.h>
 
 const char* ssid = "JaraWifi";
 const char* password = "jaraz12345";
-// Create an instance of the server
-// specify the port to listen on as an argument
+
+const char* host = "www.txtlocal.com";
+
+const int sensorMin = 0;     // Rain sensor minimum
+const int sensorMax = 1024;  // Rain sensor maximum
+
 WiFiServer server(80);
-/*
+
 static const char ntpServerName[] = "lk.pool.ntp.org";
 const float timeZone = 5.50; 
 
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
-
-int calibrationTime = 30;  //pir vars
-long unsigned int lowIn;
-long unsigned int pause = 5000; 
-boolean lockLow = true;
-boolean takeLowTime;  //pir vars
+boolean lowrain = true;//rain vars 
+boolean highrain = true;  //rain vars
 String store_var="12345";
-
 
 time_t getNtpTime();
 String digitalClockDisplay();
 String printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
-*/
+
 void setup() {
-  //dht.begin();
   
-  //pinMode(2, OUTPUT);//door
+  pinMode(2, OUTPUT);//tank_valve
   pinMode(4, OUTPUT);//light
-  /*pinMode(5, OUTPUT);//fan
-  pinMode(14, INPUT);//PIR
-  pinMode(12, OUTPUT);//PIR_Relay
-  pinMode(3, OUTPUT);//Temp_Relay */
-  digitalWrite(4, 0);
-  /*
-  digitalWrite(12, 0);//@ the begining PIR is not active
-  digitalWrite(3, 1);//From the begining temperature & humidity sensor is running
-  digitalWrite(14, 0);
-  */  
+  pinMode(5, INPUT);//soilmoisure
+  pinMode(14, INPUT);//waterlevel
+  pinMode(12, OUTPUT);//waterlevel_Relay
+  pinMode(16, OUTPUT);//rain_Relay
+  digitalWrite(2, 1);
+  digitalWrite(12, 1);//@ the begining WaterLevel Sensor is not active
+  digitalWrite(16, 0);//@ the begining Rain Sensor is not active    
   
   Serial.begin(115200);
   delay(10);  
@@ -75,57 +63,22 @@ void setup() {
 
   // Print the IP address
   Serial.println(WiFi.localIP());
-/*
+
   Udp.begin(localPort);
   setSyncProvider(getNtpTime);
-  setSyncInterval(300); */
+  setSyncInterval(300);
 }
 
-//time_t prevDisplay = 0;
+time_t prevDisplay = 0;
 
 void loop() {
-    //PIR reading...
-/*
- if(digitalRead(14) == HIGH){
-    if(lockLow){
-         lockLow = false;            
-         Serial.println("---");
-         
-         if (timeStatus() != timeNotSet) {
-            if (now() != prevDisplay) { //update the display only if time has changed
-                prevDisplay = now();
-                store_var+= digitalClockDisplay();
-                store_var+= "|";
-            }
-          }      
-         
-         delay(50);
-         }         
-         takeLowTime = true;      
- } 
+    
+  //RainDetector reading...
+ int sensorReading = analogRead(A0);
+ int range = map(sensorReading, sensorMin, sensorMax, 0, 3);  
+ 
 
- if(digitalRead(14) == LOW){ 
-    if(takeLowTime){
-        lowIn = millis();          //save the time of the transition from high to LOW
-        takeLowTime = false;       //make sure this is only done at the start of a LOW phase
-        }
-       //if the sensor is low for more than the given pause, 
-       //we assume that no more motion is going to happen
-       if(!lockLow && millis() - lowIn > pause){
-           lockLow = true; 
-           
-           if (timeStatus() != timeNotSet) {
-            if (now() != prevDisplay) { 
-                prevDisplay = now();
-                store_var+= digitalClockDisplay();
-                store_var+= "&";
-            }
-          }
-           Serial.println(store_var);              
-           delay(50);
-           }
-       }
- */      
+      
   // Check if a client has connected
   WiFiClient client = server.available();
   if (!client) {
@@ -148,12 +101,72 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/garden/light/0") != -1){
+  if (req.indexOf("/garden/tankValve/0") != -1){
+    digitalWrite(2, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\ntankValve off!";}
+    
+  else if (req.indexOf("/garden/tankValve/1") != -1){
+    digitalWrite(2, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\ntankValve on!";}
+    
+  else if (req.indexOf("/garden/tankValve/check/1") != -1){    
+    if(digitalRead(2)==LOW){
+      pos="Valve is close!";}
+    else if(digitalRead(2)==HIGH){
+      pos="Valve is open!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
+    
+  else if (req.indexOf("/garden/soilValve/0") != -1){
+    digitalWrite(2, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nsoilValve off!";}
+    
+  else if (req.indexOf("/garden/soilValve/1") != -1){
+    digitalWrite(2, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nsoilValve on!";}
+    
+  else if (req.indexOf("/garden/soilValve/check/1") != -1){    
+    if(digitalRead(2)==LOW){
+      pos="Valve is close!";}
+    else if(digitalRead(2)==HIGH){
+      pos="Valve is open!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
+    
+  else if (req.indexOf("/garden/light/0") != -1){
     digitalWrite(4, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGarden light on!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGarden_light is now low";}
+    
   else if (req.indexOf("/garden/light/1") != -1){
     digitalWrite(4, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGarden light off!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGarden_light is now high ";}
+    
+      
+
+  else if (req.indexOf("/garden/waterlevel/0") != -1){
+    digitalWrite(12, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWaterLevel Sensor Down";}
+    
+  else if (req.indexOf("/garden/waterlevel/1") != -1){
+    digitalWrite(12, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nRainDetector Sensor Up";}
+    
+  else if (req.indexOf("/garden/rain/0") != -1){
+    digitalWrite(16, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nRainDetector Sensor Down";}
+    
+  else if (req.indexOf("/garden/rain/1") != -1){
+    digitalWrite(16, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSoil Moisture Sensor Up";}
+    
+  else if (req.indexOf("/garden/soil/0") != -1){
+    digitalWrite(9, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSoil Moisture Sensor Down";}
+    
+  else if (req.indexOf("/garden/soil/1") != -1){
+    digitalWrite(9, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSoil Moisture Sensor Up";}
+    
+  else if (req.indexOf("/garden/notification") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
   else {
     Serial.println("invalid request");
     client.stop();
@@ -172,7 +185,6 @@ void loop() {
 
 }
 
-/*
 String digitalClockDisplay()
 {
   // digital clock display of the time
@@ -255,4 +267,3 @@ void sendNTPpacket(IPAddress &address)
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
 }
-*/

@@ -13,8 +13,7 @@ const char* ssid = "JaraWifi";
 const char* password = "jaraz12345";
 
 const char* host = "www.txtlocal.com";
-// Create an instance of the server
-// specify the port to listen on as an argument
+
 WiFiServer server(80);
 
 static const char ntpServerName[] = "lk.pool.ntp.org";
@@ -46,9 +45,9 @@ void setup() {
   pinMode(16, OUTPUT);//Temp_Relay
   digitalWrite(2, 0);
   digitalWrite(12, 0);//@ the begining PIR is not active
-  digitalWrite(3, 1);//From the begining temperature & humidity sensor is running
+  digitalWrite(16, 0);//From the begining temperature & humidity sensor is not running
   digitalWrite(14, 0);
-    
+ 
   
   Serial.begin(115200);
   delay(10);  
@@ -83,7 +82,7 @@ void setup() {
 time_t prevDisplay = 0;
 
 void loop() {
-    //PIR reading...
+   //PIR reading...
  if(digitalRead(14) == HIGH){
     if(lockLow){
          lockLow = false;            
@@ -169,55 +168,63 @@ void loop() {
   if (req.indexOf("/living/door/0") != -1){
     digitalWrite(2, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
+    
   else if (req.indexOf("/living/door/1") != -1){
     digitalWrite(2, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
+    
   else if (req.indexOf("/living/door/check/1") != -1){    
     if(digitalRead(2)==LOW){
       pos="Door is locked!";}
     else if(digitalRead(2)==HIGH){
       pos="Door is not locked!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
+    
   else if (req.indexOf("/living/light/0") != -1){
     digitalWrite(4, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now low";}
+    
   else if (req.indexOf("/living/light/1") != -1){
     digitalWrite(4, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now high ";}
+    
   else if (req.indexOf("/living/fan/0") != -1){
     digitalWrite(5, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now low";}
+    
   else if (req.indexOf("/living/fan/1") != -1){
     digitalWrite(5, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now high ";}
+    
   else if (req.indexOf("/living/temp/check/1") != -1){
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     float hic = dht.computeHeatIndex(t, h, false);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
+    
   else if (req.indexOf("/living/humid/check/1") != -1){
     float h = dht.readHumidity();
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(h);} 
-  else if (req.indexOf("/living/temp/0") != -1){
-    digitalWrite(3, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp Sensor Down";}
-  else if (req.indexOf("/living/temp/1") != -1){
-    digitalWrite(3, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp Sensor Up";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(h);}
+    
   else if (req.indexOf("/living/pir/0") != -1){
     digitalWrite(12, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
+    
   else if (req.indexOf("/living/pir/1") != -1){
     digitalWrite(12, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
+    
   else if (req.indexOf("/living/temp/0") != -1){
     digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
+    
   else if (req.indexOf("/living/temp/1") != -1){
     digitalWrite(16, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
+    
   else if (req.indexOf("/living/notification") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
+    
   else {
     Serial.println("invalid request");
     client.stop();
