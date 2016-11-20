@@ -7,8 +7,8 @@ const char* password = "jaraz12345";
 
 const char* host = "www.txtlocal.com";
 
-const int sensorMin = 0;     // Rain sensor minimum
-const int sensorMax = 1024;  // Rain sensor maximum
+const int sensorMin = 0;     // rainSensor minimum
+const int sensorMax = 1024;  // rainSensor maximum
 
 WiFiServer server(80);
 
@@ -18,8 +18,12 @@ const float timeZone = 5.50;
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
-boolean lowrain = true;//rain vars 
-boolean highrain = true;  //rain vars
+int calibrationTime = 30;  //pir vars
+long unsigned int lowIn;
+long unsigned int pause = 5000; 
+boolean lockLow = true;
+boolean lockHigh = true;
+boolean takeLowTime;  //pir vars
 String store_var="12345";
 
 time_t getNtpTime();
@@ -28,16 +32,20 @@ String printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
 void setup() {
+  /*
   
-  pinMode(2, OUTPUT);//tank_valve
   pinMode(4, OUTPUT);//light
-  pinMode(5, INPUT);//soilmoisure
-  pinMode(14, INPUT);//waterlevel
-  pinMode(12, OUTPUT);//waterlevel_Relay
-  pinMode(16, OUTPUT);//rain_Relay
-  digitalWrite(2, 1);
-  digitalWrite(12, 1);//@ the begining WaterLevel Sensor is not active
-  digitalWrite(16, 0);//@ the begining Rain Sensor is not active    
+  pinMode(5, OUTPUT);//fan
+  pinMode(14, INPUT);//rain
+  pinMode(12, OUTPUT);//PIR_Relay
+  pinMode(16, OUTPUT);//Temp_Relay
+  
+  digitalWrite(12, 0);//@ the begining PIR is not active
+  digitalWrite(16, 0);//From the begining temperature & humidity sensor is not running
+  digitalWrite(14, 0);
+ */
+  pinMode(2, OUTPUT);//door
+  digitalWrite(2, 0);
   
   Serial.begin(115200);
   delay(10);  
@@ -72,13 +80,87 @@ void setup() {
 time_t prevDisplay = 0;
 
 void loop() {
-    
-  //RainDetector reading...
- int sensorReading = analogRead(A0);
- int range = map(sensorReading, sensorMin, sensorMax, 0, 3);  
- 
+  int sensorReading = analogRead(0);//rainSensor
+  int range = map(sensorReading, sensorMin, sensorMax, 0, 3);//map rainSensor readings
 
-      
+    // rainSensor range value:
+  switch (range) {
+    case 0:    // Sensor getting wet      
+      if(lockHigh){
+        Serial.println("Flood");
+        lockHigh=false;
+
+        
+        
+        store_var+="HeavyRain";
+        store_var+= digitalClockDisplay();
+        store_var+= "|";
+
+        WiFiClient client;
+        const int httpPort = 80;
+        if (!client.connect(host, httpPort)) {
+          Serial.println("connection failed");
+          return;
+        }
+
+        String url = "/sendsmspost.php?uname=lahiruepa@gmail.com&pword=Lahiru@ucsc_1994&message=It's%20raining%20heavily!-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                  "Host: " + host + "\r\n" + 
+                  "Connection: close\r\n\r\n");
+        unsigned long timeout = millis();
+         while (client.available() == 0) {
+          if (millis() - timeout > 5000) {
+            client.stop();
+            return;
+          }
+        }
+         
+      Serial.print(store_var);
+         delay(50);
+        }
+      break;
+    case 1:    // Sensor getting wet      
+      if(lockLow){
+        Serial.println("Rain Warning");
+        lockLow=false;        
+        
+        store_var+="LightRain";
+        store_var+= digitalClockDisplay();
+        store_var+= "|";
+
+        WiFiClient client;
+        const int httpPort = 80;
+        if (!client.connect(host, httpPort)) {
+          Serial.println("connection failed");
+          return;
+        }
+
+        String url = "/sendsmspost.php?uname=lahiruepa@gmail.com&pword=Lahiru@ucsc_1994&message=Light%20rain%20detected!-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                  "Host: " + host + "\r\n" + 
+                  "Connection: close\r\n\r\n");
+        unsigned long timeout = millis();
+         while (client.available() == 0) {
+          if (millis() - timeout > 5000) {
+            client.stop();
+            return;
+          }
+        }
+         
+      Serial.print(store_var);
+         delay(50);
+        }
+      break;
+    case 2:    // Sensor dry - To shut this up delete the " Serial.println("Not Raining"); " below.
+      Serial.println("Not Raining");
+      lockLow=true;
+      lockHigh=true;
+      break;
+    }
+
+  delay(500);    
   // Check if a client has connected
   WiFiClient client = server.available();
   if (!client) {
@@ -101,72 +183,56 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/garden/tankValve/0") != -1){
+  if (req.indexOf("/living/door/0") != -1){
     digitalWrite(2, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\ntankValve off!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
     
-  else if (req.indexOf("/garden/tankValve/1") != -1){
+  else if (req.indexOf("/living/door/1") != -1){
     digitalWrite(2, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\ntankValve on!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
     
-  else if (req.indexOf("/garden/tankValve/check/1") != -1){    
+  else if (req.indexOf("/living/door/check/1") != -1){    
     if(digitalRead(2)==LOW){
-      pos="Valve is close!";}
+      pos="Door is locked!";}
     else if(digitalRead(2)==HIGH){
-      pos="Valve is open!";}
+      pos="Door is not locked!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/garden/soilValve/0") != -1){
-    digitalWrite(2, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nsoilValve off!";}
-    
-  else if (req.indexOf("/garden/soilValve/1") != -1){
-    digitalWrite(2, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nsoilValve on!";}
-    
-  else if (req.indexOf("/garden/soilValve/check/1") != -1){    
-    if(digitalRead(2)==LOW){
-      pos="Valve is close!";}
-    else if(digitalRead(2)==HIGH){
-      pos="Valve is open!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
-    
-  else if (req.indexOf("/garden/light/0") != -1){
+  else if (req.indexOf("/living/light/0") != -1){
     digitalWrite(4, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGarden_light is now low";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now low";}
     
-  else if (req.indexOf("/garden/light/1") != -1){
+  else if (req.indexOf("/living/light/1") != -1){
     digitalWrite(4, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nGarden_light is now high ";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now high ";}
     
-      
-
-  else if (req.indexOf("/garden/waterlevel/0") != -1){
+  else if (req.indexOf("/living/fan/0") != -1){
+    digitalWrite(5, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now low";}
+    
+  else if (req.indexOf("/living/fan/1") != -1){
+    digitalWrite(5, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now high ";}
+         
+  else if (req.indexOf("/living/pir/0") != -1){
     digitalWrite(12, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWaterLevel Sensor Down";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
     
-  else if (req.indexOf("/garden/waterlevel/1") != -1){
+  else if (req.indexOf("/living/pir/1") != -1){
     digitalWrite(12, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nRainDetector Sensor Up";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
     
-  else if (req.indexOf("/garden/rain/0") != -1){
+  else if (req.indexOf("/living/temp/0") != -1){
     digitalWrite(16, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nRainDetector Sensor Down";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
     
-  else if (req.indexOf("/garden/rain/1") != -1){
+  else if (req.indexOf("/living/temp/1") != -1){
     digitalWrite(16, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSoil Moisture Sensor Up";}
-    
-  else if (req.indexOf("/garden/soil/0") != -1){
-    digitalWrite(9, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSoil Moisture Sensor Down";}
-    
-  else if (req.indexOf("/garden/soil/1") != -1){
-    digitalWrite(9, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSoil Moisture Sensor Up";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
     
   else if (req.indexOf("/garden/notification") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
+    
   else {
     Serial.println("invalid request");
     client.stop();
