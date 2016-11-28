@@ -20,7 +20,7 @@ def fan_on():
 
 def fan_off():
     conn = httplib.HTTPConnection("192.168.43.231")
-    conn.request("GET", "/living/light/0")
+    conn.request("GET", "/living/fan/0")
     r1 = conn.getresponse()
     print r1.read()
 

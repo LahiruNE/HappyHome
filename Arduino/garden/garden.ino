@@ -103,7 +103,7 @@ void loop() {
           return;
         }
 
-        String url = "/sendsmspost.php?uname=lahiruepa@gmail.com&pword=Lahiru@ucsc_1994&message=It's%20raining%20heavily!-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+        String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Lahiru@ucsc_1994&message=It's%20raining%20heavily!-HomeAssistent&selectednums=+94716482041&info=1&test=0";
 
         client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                   "Host: " + host + "\r\n" + 

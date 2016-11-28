@@ -26,8 +26,9 @@ int calibrationTime = 30;  //pir vars
 long unsigned int lowIn;
 long unsigned int pause = 5000; 
 boolean lockLow = true;
-boolean takeLowTime;  //pir vars
-String store_var="12345";
+boolean takeLowTime;
+boolean curr=false;  //pir vars
+String store_var="stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
@@ -84,7 +85,7 @@ time_t prevDisplay = 0;
 void loop() {
    //PIR reading...
  if(digitalRead(14) == HIGH){
-    if(lockLow){
+    if(lockLow && curr){
          lockLow = false;            
          Serial.println("---");
          
@@ -122,6 +123,7 @@ void loop() {
  } 
 
  if(digitalRead(14) == LOW){ 
+    curr=true;
     if(takeLowTime){
         lowIn = millis();          //save the time of the transition from high to LOW
         takeLowTime = false;       //make sure this is only done at the start of a LOW phase
