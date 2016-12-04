@@ -10,8 +10,8 @@ def light_on():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/light/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/light/1")
     r1 = conn.getresponse()
     print r1.read()
 
@@ -25,12 +25,12 @@ def light_off():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/light/0")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/light/0")
     r1 = conn.getresponse()
     print r1.read()
 
-def waterlevel_on():
+def fan_on():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -40,12 +40,12 @@ def waterlevel_on():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/waterlevel/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/fan/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def waterlevel_off():
+def fan_off():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -55,12 +55,12 @@ def waterlevel_off():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/waterlevel/0")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/fan/0")
     r1 = conn.getresponse()
     print r1.read()
 
-def waterlevel_check():
+def door_lock():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -70,12 +70,12 @@ def waterlevel_check():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/waterlevel/check/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/door/0")
     r1 = conn.getresponse()
     print r1.read()
-
-def rain_on():
+    
+def door_unlock():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -85,12 +85,12 @@ def rain_on():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/rain/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/door/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def rain_off():
+def door_check():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -100,12 +100,12 @@ def rain_off():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/rain/0")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/door/check/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def tankvalve_on():
+def temp_check():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -115,12 +115,12 @@ def tankvalve_on():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/tankvalve/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/temp/check/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def tankvalve_off():
+def humid_check():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -130,12 +130,12 @@ def tankvalve_off():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/tankvalve/0")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/humid/check/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def tankvalve_check():
+def pir_on():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -145,12 +145,12 @@ def tankvalve_check():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/tankvalve/check/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/pir/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def soilvalve_on():
+def pir_off():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -160,12 +160,12 @@ def soilvalve_on():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/soilvalve/1")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/pir/0")
     r1 = conn.getresponse()
     print r1.read()
 
-def soilvalve_off():
+def temp_on():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -175,12 +175,12 @@ def soilvalve_off():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/soilvalve/0")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/temp/1")
     r1 = conn.getresponse()
     print r1.read()
 
-def soilvalve_check():
+def temp_off():
     dataList={}
 
     with open("../log/log.txt") as log:
@@ -190,83 +190,8 @@ def soilvalve_check():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/soilvalve/check/1")
-    r1 = conn.getresponse()
-    print r1.read()
-
-def soil_activate():
-    dataList={}
-
-    with open("../log/log.txt") as log:
-        for line in log:
-            if line!="":
-                value=line.split("=")[1].split('\n')[0].split("'")[1]
-                key=line.split("=")[0]
-                dataList[key]=value
-    
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/soil/1")
-    r1 = conn.getresponse()
-    print r1.read()
-
-def soil_deactivate():
-    dataList={}
-
-    with open("../log/log.txt") as log:
-        for line in log:
-            if line!="":
-                value=line.split("=")[1].split('\n')[0].split("'")[1]
-                key=line.split("=")[0]
-                dataList[key]=value
-    
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/soil/0")
-    r1 = conn.getresponse()
-    print r1.read()
-
-def moisture_check():
-    dataList={}
-
-    with open("../log/log.txt") as log:
-        for line in log:
-            if line!="":
-                value=line.split("=")[1].split('\n')[0].split("'")[1]
-                key=line.split("=")[0]
-                dataList[key]=value
-    
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/soil/check/1")
-    r1 = conn.getresponse()
-    print r1.read()
-
-def photo_on():
-    dataList={}
-
-    with open("../log/log.txt") as log:
-        for line in log:
-            if line!="":
-                value=line.split("=")[1].split('\n')[0].split("'")[1]
-                key=line.split("=")[0]
-                dataList[key]=value
-    
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/photocell/1")
-    r1 = conn.getresponse()
-    print r1.read()
-
-def phto_off():
-    dataList={}
-
-    with open("../log/log.txt") as log:
-        for line in log:
-            if line!="":
-                value=line.split("=")[1].split('\n')[0].split("'")[1]
-                key=line.split("=")[0]
-                dataList[key]=value
-    
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/photocell/0")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/temp/0")
     r1 = conn.getresponse()
     print r1.read()
 
@@ -280,12 +205,8 @@ def notification():
                 key=line.split("=")[0]
                 dataList[key]=value
     
-    conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/notification")
+    conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
+    conn.request("GET", "/living/notification")
     r1 = conn.getresponse()
-    r1=r1.read()
-    conn = httplib.HTTPConnection(dataList['gardenV1_part2_IP'])
-    conn.request("GET", "/garden/notification")
-    r2 = conn.getresponse()
-    r2=r2.read()
-    print r1+"&"+r2
+    print r1.read()
+    

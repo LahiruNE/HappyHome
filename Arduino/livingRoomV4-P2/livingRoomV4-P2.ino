@@ -7,9 +7,6 @@ const char* password = "jaraz12345";
 
 const char* host = "www.txtlocal.com";
 
-const int sensorMin = 0;     // rainSensor minimum
-const int sensorMax = 1024;  // rainSensor maximum
-
 WiFiServer server(80);
 
 static const char ntpServerName[] = "lk.pool.ntp.org";
@@ -22,9 +19,9 @@ int calibrationTime = 30;  //pir vars
 long unsigned int lowIn;
 long unsigned int pause = 5000; 
 boolean lockLow = true;
-boolean lockHigh = true;
-boolean takeLowTime;  //pir vars
-String store_var="12345";
+boolean takeLowTime;
+boolean curr=false;  //pir vars
+String store_var="stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
@@ -32,20 +29,14 @@ String printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
 void setup() {
-  /*
-  
-  pinMode(4, OUTPUT);//light
-  pinMode(5, OUTPUT);//fan
-  pinMode(14, INPUT);//rain
+  pinMode(A0, INPUT);//window
+  pinMode(5, OUTPUT);//window_Relay
+  pinMode(14, INPUT);//PIR
   pinMode(12, OUTPUT);//PIR_Relay
-  pinMode(16, OUTPUT);//Temp_Relay
-  
   digitalWrite(12, 0);//@ the begining PIR is not active
-  digitalWrite(16, 0);//From the begining temperature & humidity sensor is not running
+  digitalWrite(5, 0);//@ the begining smokeSensor is not active
   digitalWrite(14, 0);
- */
-  pinMode(2, OUTPUT);//door
-  digitalWrite(2, 0);
+ 
   
   Serial.begin(115200);
   delay(10);  
@@ -80,87 +71,69 @@ void setup() {
 time_t prevDisplay = 0;
 
 void loop() {
-  int sensorReading = analogRead(0);//rainSensor
-  int range = map(sensorReading, sensorMin, sensorMax, 0, 3);//map rainSensor readings
-
-    // rainSensor range value:
-  switch (range) {
-    case 0:    // Sensor getting wet      
-      if(lockHigh){
-        Serial.println("Flood");
-        lockHigh=false;
-
-        
-        
-        store_var+="HeavyRain";
-        store_var+= digitalClockDisplay();
-        store_var+= "|";
-
-        WiFiClient client;
-        const int httpPort = 80;
-        if (!client.connect(host, httpPort)) {
-          Serial.println("connection failed");
-          return;
-        }
-
-        String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Lahiru@ucsc_1994&message=It's%20raining%20heavily!-HomeAssistent&selectednums=+94716482041&info=1&test=0";
-
-        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                  "Host: " + host + "\r\n" + 
-                  "Connection: close\r\n\r\n");
-        unsigned long timeout = millis();
-         while (client.available() == 0) {
-          if (millis() - timeout > 5000) {
-            client.stop();
-            return;
-          }
-        }
+   //PIR reading...
+ if(digitalRead(14) == HIGH){
+    if(lockLow && curr){
+         lockLow = false;            
+         Serial.println("---");
          
-      Serial.print(store_var);
-         delay(50);
-        }
-      break;
-    case 1:    // Sensor getting wet      
-      if(lockLow){
-        Serial.println("Rain Warning");
-        lockLow=false;        
-        
-        store_var+="LightRain";
-        store_var+= digitalClockDisplay();
-        store_var+= "|";
+         if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { //update the display only if time has changed
+                prevDisplay = now();
+                store_var+="Movement Detected|";
+                store_var+= digitalClockDisplay();
+                store_var+= "|";
 
-        WiFiClient client;
-        const int httpPort = 80;
-        if (!client.connect(host, httpPort)) {
-          Serial.println("connection failed");
-          return;
-        }
+                WiFiClient client;
+                const int httpPort = 80;
+                if (!client.connect(host, httpPort)) {
+                  Serial.println("connection failed");
+                  return;
+                }
 
-        String url = "/sendsmspost.php?uname=lahiruepa@gmail.com&pword=Lahiru@ucsc_1994&message=Light%20rain%20detected!-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums=+94716482041&info=1&test=0";
 
-        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                  "Host: " + host + "\r\n" + 
-                  "Connection: close\r\n\r\n");
-        unsigned long timeout = millis();
-         while (client.available() == 0) {
-          if (millis() - timeout > 5000) {
-            client.stop();
-            return;
-          }
-        }
+                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                          "Host: " + host + "\r\n" + 
+                          "Connection: close\r\n\r\n");
+                unsigned long timeout = millis();
+                while (client.available() == 0) {
+                  if (millis() - timeout > 5000) {
+                    client.stop();
+                    return;
+                  }
+                }
+            }
+          }      
          
-      Serial.print(store_var);
          delay(50);
-        }
-      break;
-    case 2:    // Sensor dry - To shut this up delete the " Serial.println("Not Raining"); " below.
-      Serial.println("Not Raining");
-      lockLow=true;
-      lockHigh=true;
-      break;
-    }
+         }         
+         takeLowTime = true;      
+ } 
 
-  delay(500);    
+ if(digitalRead(14) == LOW){ 
+    curr=true;
+    if(takeLowTime){
+        lowIn = millis();          //save the time of the transition from high to LOW
+        takeLowTime = false;       //make sure this is only done at the start of a LOW phase
+        }
+       //if the sensor is low for more than the given pause, 
+       //we assume that no more motion is going to happen
+       if(!lockLow && millis() - lowIn > pause){
+           lockLow = true; 
+           
+           if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { 
+                prevDisplay = now();
+                store_var+= digitalClockDisplay();
+                store_var+= "&";
+            }
+          }
+           Serial.println(store_var);              
+           delay(50);
+           }
+       }
+
   // Check if a client has connected
   WiFiClient client = server.available();
   if (!client) {
@@ -183,37 +156,21 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/living/door/0") != -1){
-    digitalWrite(2, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
+  if (req.indexOf("/living/window/0") != -1){
+    digitalWrite(5, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWindowSensor is now down";}
     
-  else if (req.indexOf("/living/door/1") != -1){
-    digitalWrite(2, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
-    
-  else if (req.indexOf("/living/door/check/1") != -1){    
-    if(digitalRead(2)==LOW){
-      pos="Door is locked!";}
-    else if(digitalRead(2)==HIGH){
-      pos="Door is not locked!";}
+  else if (req.indexOf("/living/window/1") != -1){
+    digitalWrite(5, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWindowSensor is now up ";}
+  
+  else if (req.indexOf("/living/window/check/1") != -1){    
+    if(analogRead(A0)>10){
+      pos="Window is closed!";}
+    else{
+      pos="Window is not closed!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/living/light/0") != -1){
-    digitalWrite(4, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now low";}
-    
-  else if (req.indexOf("/living/light/1") != -1){
-    digitalWrite(4, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now high ";}
-    
-  else if (req.indexOf("/living/fan/0") != -1){
-    digitalWrite(5, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now low";}
-    
-  else if (req.indexOf("/living/fan/1") != -1){
-    digitalWrite(5, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now high ";}
-         
   else if (req.indexOf("/living/pir/0") != -1){
     digitalWrite(12, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
@@ -221,16 +178,8 @@ void loop() {
   else if (req.indexOf("/living/pir/1") != -1){
     digitalWrite(12, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
-    
-  else if (req.indexOf("/living/temp/0") != -1){
-    digitalWrite(16, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
-    
-  else if (req.indexOf("/living/temp/1") != -1){
-    digitalWrite(16, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
-    
-  else if (req.indexOf("/garden/notification") != -1){
+ 
+  else if (req.indexOf("/living/notification") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
     
   else {
