@@ -255,7 +255,7 @@ def photo_on():
     r1 = conn.getresponse()
     print r1.read()
 
-def phto_off():
+def photo_off():
     dataList={}
 
     with open("../log/log.txt") as log:

@@ -2,15 +2,9 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 
-#include "DHT.h"
-
-#define DHTPIN 13//temp&humid
-#define DHTTYPE DHT22 
-
-DHT dht(DHTPIN, DHTTYPE);
-
-const char* ssid = "JaraWifi";
-const char* password = "jaraz12345";
+const char* ssid = "JaraWifi"; //your ssid
+const char* password = "jaraz12345"; //password of your wifi network
+String phoneNumber="+94716482041"; //phone number to which notification messages are sent
 
 const char* host = "www.txtlocal.com";
 
@@ -22,33 +16,37 @@ const float timeZone = 5.50;
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
-int calibrationTime = 30;  //pir vars
-long unsigned int lowIn;
-long unsigned int pause = 5000; 
-boolean lockLow = true;
-boolean takeLowTime;
-boolean curr=false;  //pir vars
-String store_var="stTime1|endTime1&";
+boolean smokeFirst=true;//smoke vars
+boolean smokeEnd=false;//smoke vars
+
+//sound Sensor vars
+int vibDetectedVal = HIGH; //where record our Sound Measurement
+boolean bAlarm = false;
+unsigned long lastVibDetectTime; // Record the time that measured a sound
+int vibAlarmTime = 500; // Number of milli seconds to keep the sound alarm high
+//sound sensor vars
+
+
+String store_var1="stTime1|endTime1&";
+String store_var2="stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
 String printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
-void setup() {
-  dht.begin();
-  
-  pinMode(2, OUTPUT);//door
-  pinMode(4, OUTPUT);//light
-  pinMode(5, OUTPUT);//fan
-  pinMode(14, INPUT);//PIR
-  pinMode(12, OUTPUT);//PIR_Relay
-  pinMode(16, OUTPUT);//Temp_Relay
-  digitalWrite(2, 0);
-  digitalWrite(12, 0);//@ the begining PIR is not active
+void setup() {  
+  pinMode(4, OUTPUT);//door
+  pinMode(5, OUTPUT);//sound_Relay
+  pinMode(13,INPUT);//sound sensor
+  pinMode(A0, INPUT);//smoke
+  pinMode(12, OUTPUT);//smoke_Relay
+  pinMode(16, OUTPUT);//buzzer
+  digitalWrite(2, 1);
+  digitalWrite(12, 0);//@ the begining smoke is not active
+  digitalWrite(14,0);//@ the begining water leakage sensor is not active
   digitalWrite(16, 0);//From the begining temperature & humidity sensor is not running
-  digitalWrite(14, 0);
- 
+  digitalWrite(2, 1);
   
   Serial.begin(115200);
   delay(10);  
@@ -83,17 +81,21 @@ void setup() {
 time_t prevDisplay = 0;
 
 void loop() {
-   //PIR reading...
- if(digitalRead(14) == HIGH){
-    if(lockLow && curr){
-         lockLow = false;            
-         Serial.println("---");
-         
-         if (timeStatus() != timeNotSet) {
+  soundSensing();
+  
+    
+   //smokeSensor reading
+  if(analogRead(A0)>100){
+    digitalWrite(16,1);//buzzer on
+    if(smokeFirst){
+      smokeFirst=false;
+
+      if (timeStatus() != timeNotSet) {
             if (now() != prevDisplay) { //update the display only if time has changed
                 prevDisplay = now();
-                store_var+= digitalClockDisplay();
-                store_var+= "|";
+                store_var1+="Smoke detected|";
+                store_var1+= digitalClockDisplay();
+                store_var1+= "|";
 
                 WiFiClient client;
                 const int httpPort = 80;
@@ -102,7 +104,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=jason.kkelly@zoho.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums=+94716043586&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -118,32 +120,24 @@ void loop() {
           }      
          
          delay(50);
-         }         
-         takeLowTime = true;      
- } 
-
- if(digitalRead(14) == LOW){ 
-    curr=true;
-    if(takeLowTime){
-        lowIn = millis();          //save the time of the transition from high to LOW
-        takeLowTime = false;       //make sure this is only done at the start of a LOW phase
-        }
-       //if the sensor is low for more than the given pause, 
-       //we assume that no more motion is going to happen
-       if(!lockLow && millis() - lowIn > pause){
-           lockLow = true; 
-           
-           if (timeStatus() != timeNotSet) {
+      }
+      smokeEnd=true;    
+    }
+  else{
+    digitalWrite(16,0);//buzzer off
+    smokeFirst=true;
+    if(smokeEnd){
+      if (timeStatus() != timeNotSet) {
             if (now() != prevDisplay) { 
                 prevDisplay = now();
-                store_var+= digitalClockDisplay();
-                store_var+= "&";
+                store_var1+= digitalClockDisplay();
+                store_var1+= "&";
             }
           }
-           Serial.println(store_var);              
+           Serial.println(store_var1);              
            delay(50);
-           }
-       }
+      }
+    }
        
   // Check if a client has connected
   WiFiClient client = server.available();
@@ -167,65 +161,53 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/living/door/0") != -1){
-    digitalWrite(2, 0);
+  if (req.indexOf("/door/0") != -1){
+    digitalWrite(4, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
     
-  else if (req.indexOf("/living/door/1") != -1){
-    digitalWrite(2, 1);
+  else if (req.indexOf("/door/1") != -1){
+    digitalWrite(4, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
     
-  else if (req.indexOf("/living/door/check/1") != -1){    
-    if(digitalRead(2)==LOW){
+  else if (req.indexOf("/door/check/1") != -1){    
+    if(digitalRead(4)==LOW){
       pos="Door is locked!";}
-    else if(digitalRead(2)==HIGH){
+    else if(digitalRead(4)==HIGH){
       pos="Door is not locked!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
-    
-  else if (req.indexOf("/living/light/0") != -1){
-    digitalWrite(4, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now low";}
-    
-  else if (req.indexOf("/living/light/1") != -1){
-    digitalWrite(4, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now high ";}
-    
-  else if (req.indexOf("/living/fan/0") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}    
+  
+  else if (req.indexOf("/sound/0") != -1){
     digitalWrite(5, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now low";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nKitchen_fan is now low";}
     
-  else if (req.indexOf("/living/fan/1") != -1){
+  else if (req.indexOf("/sound/1") != -1){
     digitalWrite(5, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now high ";}
-    
-  else if (req.indexOf("/living/temp/check/1") != -1){
-    float h = dht.readHumidity();
-    float t = dht.readTemperature();
-    float hic = dht.computeHeatIndex(t, h, false);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
-    
-  else if (req.indexOf("/living/humid/check/1") != -1){
-    float h = dht.readHumidity();
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(h);}
-    
-  else if (req.indexOf("/living/pir/0") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nKitchen_fan is now high ";}
+
+  else if (req.indexOf("/sound/check/1") != -1){    
+    if(digitalRead(5)==LOW){
+      pos="Vibration sensor down!";}
+    else if(digitalRead(5)==HIGH){
+      pos="Vibration sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}  
+  
+  else if (req.indexOf("/smoke/0") != -1){
     digitalWrite(12, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Down";}
     
-  else if (req.indexOf("/living/pir/1") != -1){
+  else if (req.indexOf("/smoke/1") != -1){
     digitalWrite(12, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
-    
-  else if (req.indexOf("/living/temp/0") != -1){
-    digitalWrite(16, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
-    
-  else if (req.indexOf("/living/temp/1") != -1){
-    digitalWrite(16, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
-    
-  else if (req.indexOf("/living/notification") != -1){
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Up";}
+
+  else if (req.indexOf("/smoke/check/1") != -1){    
+    if(digitalRead(12)==LOW){
+      pos="Smoke sensor down!";}
+    else if(digitalRead(12)==HIGH){
+      pos="Smoke sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;} 
+  
+  else if (req.indexOf("/notification") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var1+"&"+store_var2;}
     
   else {
     Serial.println("invalid request");
@@ -327,3 +309,65 @@ void sendNTPpacket(IPAddress &address)
   Udp.write(packetBuffer, NTP_PACKET_SIZE);
   Udp.endPacket();
 }
+
+//vibration sensor reading
+void soundSensing(){
+  vibDetectedVal = digitalRead (13) ; // read the vibration alarm time
+  
+  if (vibDetectedVal == LOW) // If hear a sound
+  {  
+    digitalWrite(16,1); //buzzer on
+    lastVibDetectTime = millis(); // record the time of the sound alarm
+    if (!bAlarm){
+      Serial.println("LOUD, LOUD");
+      bAlarm = true;
+
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { //update the display only if time has changed
+                prevDisplay = now();
+                store_var2+="Sound Detected|";
+                store_var2+= digitalClockDisplay();
+                store_var2+= "|";
+
+                WiFiClient client;
+                const int httpPort = 80;
+                if (!client.connect(host, httpPort)) {
+                  Serial.println("connection failed");
+                  return;
+                }
+
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Unidentified%20sound%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+
+                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                          "Host: " + host + "\r\n" + 
+                          "Connection: close\r\n\r\n");
+                unsigned long timeout = millis();
+                while (client.available() == 0) {
+                  if (millis() - timeout > 5000) {
+                    client.stop();
+                    return;
+                  }
+                }
+            }
+          }  
+    }
+  }
+  else
+  {
+    digitalWrite(16,0);//buzzer off
+    if( (millis()-lastVibDetectTime) > vibAlarmTime  &&  bAlarm){
+      Serial.println("quiet");
+      bAlarm = false;
+
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { 
+                prevDisplay = now();
+                store_var2+= digitalClockDisplay();
+                store_var2+= "&";
+            }
+          }
+    }
+  }
+  }
+ //vibration sensor reading ends
+

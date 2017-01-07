@@ -9,8 +9,9 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 
-const char* ssid = "JaraWifi";
-const char* password = "jaraz12345";
+const char* ssid = "JaraWifi"; //your ssid
+const char* password = "jaraz12345"; //paswword for your wifi network
+String phoneNumber="+94716482041"; //phone number to which notification messages are sent
 
 const char* host = "www.txtlocal.com";
 
@@ -39,11 +40,12 @@ void setup() {
   pinMode(5, OUTPUT);//fan
   pinMode(A0, INPUT);//smoke
   pinMode(12, OUTPUT);//smoke_Relay
-  pinMode(16, OUTPUT);//Temp_Relay
+  pinMode(14, OUTPUT);//Temp_Relay
+  pinMode(16, OUTPUT);//buzzer
   digitalWrite(2, 0);
   digitalWrite(12, 0);//@ the begining smoke is not active
-  digitalWrite(16, 0);//From the begining temperature & humidity sensor is not running
-  digitalWrite(14, 0);
+  digitalWrite(14, 0);//From the begining temperature & humidity sensor is not running
+  digitalWrite(16,0);
  
   
   Serial.begin(115200);
@@ -81,6 +83,7 @@ time_t prevDisplay = 0;
 void loop() {
    //smokeSensor reading
   if(analogRead(A0)>100){
+    digitalWrite(16,1);//buzzer on
     if(smokeFirst){
       smokeFirst=false;
 
@@ -98,7 +101,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -118,6 +121,7 @@ void loop() {
       smokeEnd=true;    
     }
   else{
+    digitalWrite(16,0);//buzzer off
     smokeFirst=true;
     if(smokeEnd){
       if (timeStatus() != timeNotSet) {
@@ -131,7 +135,7 @@ void loop() {
            delay(50);
       }
     }
-       
+  //smoke sensor reading ends   
   // Check if a client has connected
   WiFiClient client = server.available();
   if (!client) {
@@ -204,11 +208,11 @@ void loop() {
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Up";}
     
   else if (req.indexOf("/living/temp/0") != -1){
-    digitalWrite(16, 0);
+    digitalWrite(14, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
     
   else if (req.indexOf("/living/temp/1") != -1){
-    digitalWrite(16, 1);
+    digitalWrite(14, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
     
   else if (req.indexOf("/living/notification") != -1){

@@ -2,8 +2,8 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 
-const char* ssid = "JaraWifi";    //your ssid
-const char* password = "jaraz12345"; //your wifi network password
+const char* ssid = "JaraWifi"; //your ssid
+const char* password = "jaraz12345"; //password of your wifi network
 String phoneNumber="+94716482041"; //phone number to which notification messages are sent
 
 const char* host = "www.txtlocal.com";
@@ -16,43 +16,41 @@ const float timeZone = 5.50;
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
-int calibrationTime = 30;  //pir vars
-long unsigned int lowIn;
-long unsigned int pause = 5000; 
-boolean lockLow = true;
-boolean takeLowTime;
-boolean curr=false;  //pir vars
+boolean smokeFirst=true;//smoke vars
+boolean smokeEnd=false;//smoke vars
 
 //sound Sensor vars
-int soundDetectedVal = HIGH; //where record our Sound Measurement
+int vibDetectedVal = HIGH; //where record our Sound Measurement
 boolean bAlarm = false;
-unsigned long lastSoundDetectTime; // Record the time that measured a sound
-int soundAlarmTime = 500; // Number of milli seconds to keep the sound alarm high
+unsigned long lastVibDetectTime; // Record the time that measured a sound
+int vibAlarmTime = 500; // Number of milli seconds to keep the sound alarm high
 //sound sensor vars
+
 
 String store_var1="stTime1|endTime1&";
 String store_var2="stTime1|endTime1&";
+String store_var3="stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
 String printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
-void setup() {
-  pinMode(A0, INPUT);//window
-  pinMode(5, OUTPUT);//window_Relay
-  pinMode(14, INPUT);//PIR
-  pinMode(12, OUTPUT);//PIR_Relay
-  pinMode(2, INPUT);//sound sensor
-  pinMode(4,OUTPUT);//sound_Relay
+void setup() {  
+  pinMode(2, INPUT);//sound
+  pinMode(4, OUTPUT);//door
+  pinMode(5, OUTPUT);//vib_Relay
+  pinMode(13,INPUT);//vibration sensor
+  pinMode(A0, INPUT);//smoke
+  pinMode(12, OUTPUT);//smoke_Relay
   pinMode(16, OUTPUT);//buzzer
-  digitalWrite(12, 0);//@ the begining PIR is not active
-  digitalWrite(5, 0);//@ the begining smokeSensor is not active
-  digitalWrite(4, 0);//@ the begining soundSensor is not active
-  digitalWrite(14, 0);
-  digitalWrite(16,0);
- 
-  
+  pinMode(14, OUTPUT);//sound_Relay
+  digitalWrite(2, 1);
+  digitalWrite(12, 0);//@ the begining smoke is not active
+  digitalWrite(14,0);//@ the begining smoke sensor is not active
+  digitalWrite(16, 0);//From the begining temperature & humidity sensor is not running
+  digitalWrite(2, 1);
+
   Serial.begin(115200);
   delay(10);  
   
@@ -86,19 +84,20 @@ void setup() {
 time_t prevDisplay = 0;
 
 void loop() {
- soundSensing();
+  vibSensing();
   
-   //PIR reading...
- if(digitalRead(14) == HIGH){
-  digitalWrite(16,1);//buzzer on
-    if(lockLow && curr){
-         lockLow = false;            
-         Serial.println("---");
-         
-         if (timeStatus() != timeNotSet) {
+ soundSensing();
+   
+   //smokeSensor reading
+  if(analogRead(A0)>100){
+    digitalWrite(16,1);//buzzer on
+    if(smokeFirst){
+      smokeFirst=false;
+
+      if (timeStatus() != timeNotSet) {
             if (now() != prevDisplay) { //update the display only if time has changed
                 prevDisplay = now();
-                store_var1+="Movement Detected|";
+                store_var1+="Smoke detected|";
                 store_var1+= digitalClockDisplay();
                 store_var1+= "|";
 
@@ -109,7 +108,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -125,23 +124,14 @@ void loop() {
           }      
          
          delay(50);
-         }         
-         takeLowTime = true;      
- } 
-
- if(digitalRead(14) == LOW){ 
-  digitalWrite(16,0);//buzzer off
-    curr=true;
-    if(takeLowTime){
-        lowIn = millis();          //save the time of the transition from high to LOW
-        takeLowTime = false;       //make sure this is only done at the start of a LOW phase
-        }
-       //if the sensor is low for more than the given pause, 
-       //we assume that no more motion is going to happen
-       if(!lockLow && millis() - lowIn > pause){
-           lockLow = true; 
-           
-           if (timeStatus() != timeNotSet) {
+      }
+      smokeEnd=true;    
+    }
+  else{
+    digitalWrite(16,0);//buzzer off
+    smokeFirst=true;
+    if(smokeEnd){
+      if (timeStatus() != timeNotSet) {
             if (now() != prevDisplay) { 
                 prevDisplay = now();
                 store_var1+= digitalClockDisplay();
@@ -150,9 +140,9 @@ void loop() {
           }
            Serial.println(store_var1);              
            delay(50);
-           }
-       }
-  //pir reading ends
+      }
+    }
+       
   // Check if a client has connected
   WiFiClient client = server.available();
   if (!client) {
@@ -175,38 +165,67 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/living/window/0") != -1){
-    digitalWrite(5, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWindowSensor is now down";}
-    
-  else if (req.indexOf("/living/window/1") != -1){
-    digitalWrite(5, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nWindowSensor is now up ";}
-  
-  else if (req.indexOf("/living/window/check/1") != -1){    
-    if(analogRead(A0)>10){
-      pos="Window is closed!";}
-    else{
-      pos="Window is not closed!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
-    
-  else if (req.indexOf("/living/pir/0") != -1){
-    digitalWrite(12, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
-    
-  else if (req.indexOf("/living/pir/1") != -1){
-    digitalWrite(12, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
-
-  else if (req.indexOf("/living/sound/0") != -1){
+  if (req.indexOf("/door/0") != -1){
     digitalWrite(4, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nsound Sensor Down";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
     
-  else if (req.indexOf("/living/sound/1") != -1){
+  else if (req.indexOf("/door/1") != -1){
     digitalWrite(4, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nsound Sensor Up";}
- 
-  else if (req.indexOf("/living/notification") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
+    
+  else if (req.indexOf("/door/check/1") != -1){    
+    if(digitalRead(4)==LOW){
+      pos="Door is locked!";}
+    else if(digitalRead(4)==HIGH){
+      pos="Door is not locked!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}    
+  
+  else if (req.indexOf("/vibration/0") != -1){
+    digitalWrite(5, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nKitchen_fan is now low";}
+    
+  else if (req.indexOf("/vibration/1") != -1){
+    digitalWrite(5, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nKitchen_fan is now high ";}
+
+  else if (req.indexOf("/vibration/check/1") != -1){    
+    if(digitalRead(5)==LOW){
+      pos="Vibration sensor down!";}
+    else if(digitalRead(5)==HIGH){
+      pos="Vibration sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}  
+  
+  else if (req.indexOf("/smoke/0") != -1){
+    digitalWrite(12, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Down";}
+    
+  else if (req.indexOf("/smoke/1") != -1){
+    digitalWrite(12, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Up";}
+
+  else if (req.indexOf("/smoke/check/1") != -1){    
+    if(digitalRead(12)==LOW){
+      pos="Smoke sensor down!";}
+    else if(digitalRead(12)==HIGH){
+      pos="Smoke sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;} 
+  
+  else if (req.indexOf("/sound/0") != -1){
+    digitalWrite(14, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLeakage Sensor Down";}
+    
+  else if (req.indexOf("/sound/1") != -1){
+    digitalWrite(14, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLeakage Sensor Up";}
+
+  else if (req.indexOf("/sound/check/1") != -1){    
+    if(digitalRead(14)==LOW){
+      pos="Sound sensor down!";}
+    else if(digitalRead(14)==HIGH){
+      pos="Sound sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;} 
+  
+  else if (req.indexOf("/notification") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var1+"&"+store_var2;}
     
   else {
@@ -310,14 +329,15 @@ void sendNTPpacket(IPAddress &address)
   Udp.endPacket();
 }
 
-//sound sensor reading
-void soundSensing(){
-  soundDetectedVal = digitalRead (2) ; // read the sound alarm time
+
+//vibration sensor reading
+void vibSensing(){
+  vibDetectedVal = digitalRead (13) ; // read the vibration alarm time
   
-  if (soundDetectedVal == LOW) // If hear a sound
+  if (vibDetectedVal == LOW) // If hear a sound
   {  
     digitalWrite(16,1); //buzzer on
-    lastSoundDetectTime = millis(); // record the time of the sound alarm
+    lastVibDetectTime = millis(); // record the time of the sound alarm
     if (!bAlarm){
       Serial.println("LOUD, LOUD");
       bAlarm = true;
@@ -325,9 +345,70 @@ void soundSensing(){
       if (timeStatus() != timeNotSet) {
             if (now() != prevDisplay) { //update the display only if time has changed
                 prevDisplay = now();
-                store_var2+="Sound Detected|";
+                store_var2+="Vibration Detected|";
                 store_var2+= digitalClockDisplay();
                 store_var2+= "|";
+
+                WiFiClient client;
+                const int httpPort = 80;
+                if (!client.connect(host, httpPort)) {
+                  Serial.println("connection failed");
+                  return;
+                }
+
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Unidentified%20vibration%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+
+                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                          "Host: " + host + "\r\n" + 
+                          "Connection: close\r\n\r\n");
+                unsigned long timeout = millis();
+                while (client.available() == 0) {
+                  if (millis() - timeout > 5000) {
+                    client.stop();
+                    return;
+                  }
+                }
+            }
+          }  
+    }
+  }
+  else
+  {
+    digitalWrite(16,0);//buzzer off
+    if( (millis()-lastVibDetectTime) > vibAlarmTime  &&  bAlarm){
+      Serial.println("quiet");
+      bAlarm = false;
+
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { 
+                prevDisplay = now();
+                store_var2+= digitalClockDisplay();
+                store_var2+= "&";
+            }
+          }
+    }
+  }
+  }
+ //vibration sensor reading ends
+
+ //Sound sensor reading
+void soundSensing(){
+  vibDetectedVal = digitalRead (2) ; // read the vibration alarm time
+  
+  if (vibDetectedVal == LOW) // If hear a sound
+  {  
+    digitalWrite(16,1); //buzzer on
+    lastVibDetectTime = millis(); // record the time of the sound alarm
+    if (!bAlarm){
+      Serial.println("LOUD, LOUD");
+      bAlarm = true;
+
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { //update the display only if time has changed
+                prevDisplay = now();
+                store_var3+="Sound Detected|";
+                store_var3+= digitalClockDisplay();
+                store_var3+= "|";
 
                 WiFiClient client;
                 const int httpPort = 80;
@@ -355,7 +436,7 @@ void soundSensing(){
   else
   {
     digitalWrite(16,0);//buzzer off
-    if( (millis()-lastSoundDetectTime) > soundAlarmTime  &&  bAlarm){
+    if( (millis()-lastVibDetectTime) > vibAlarmTime  &&  bAlarm){
       Serial.println("quiet");
       bAlarm = false;
 
@@ -370,3 +451,4 @@ void soundSensing(){
   }
   }
  //sound sensor reading ends
+

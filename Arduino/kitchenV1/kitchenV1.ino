@@ -9,8 +9,9 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 
-const char* ssid = "JaraWifi";
-const char* password = "jaraz12345";
+const char* ssid = "JaraWifi"; //your ssid
+const char* password = "jaraz12345"; //password of your wifi network
+String phoneNumber="+94716482041"; //phone number to which notification messages are sent
 
 const char* host = "www.txtlocal.com";
 
@@ -122,7 +123,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Water%20leakage%20of%20"+floatR+"L/min%20detected%20in%20kitchen.-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Water%20leakage%20of%20"+String(floatR)+"L/min%20detected%20in%20kitchen.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -176,7 +177,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums=+94716482041&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 

@@ -11,7 +11,7 @@ def light_on():
                 dataList[key]=value
     
     conn = httplib.HTTPConnection(dataList['LivingRoomV1_IP'])
-    conn.request("GET", "/living/light/1")
+    conn.request("GET", "/reading")
     r1 = conn.getresponse()
     print r1.read()
 

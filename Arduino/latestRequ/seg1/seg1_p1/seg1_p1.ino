@@ -9,8 +9,9 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 
-const char* ssid = "JaraWifi";
-const char* password = "jaraz12345";
+const char* ssid = "JaraWifi"; //your ssid
+const char* password = "jaraz12345"; //password of your wifi network
+String phoneNumber="+94716482041"; //phone number to which notification messages are sent
 
 const char* host = "www.txtlocal.com";
 
@@ -38,7 +39,7 @@ void sendNTPpacket(IPAddress &address);
 void setup() {
   dht.begin();
   
-  pinMode(2, OUTPUT);//door
+  pinMode(2, OUTPUT);//autoLight
   pinMode(4, OUTPUT);//light
   pinMode(5, OUTPUT);//fan
   pinMode(14, INPUT);//PIR
@@ -102,7 +103,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=jason.kkelly@zoho.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums=+94716043586&info=1&test=0";
+                String url = "/sendsmspost.php?uname=jason.kkelly@zoho.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -167,64 +168,92 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/living/door/0") != -1){
+  if (req.indexOf("/autolight/0") != -1){
     digitalWrite(2, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nautolight locked!";}
     
-  else if (req.indexOf("/living/door/1") != -1){
+  else if (req.indexOf("/autolight/1") != -1){
     digitalWrite(2, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nautolight unlocked!";}
     
-  else if (req.indexOf("/living/door/check/1") != -1){    
+  else if (req.indexOf("/autolight/check/1") != -1){    
     if(digitalRead(2)==LOW){
-      pos="Door is locked!";}
+      pos="autolight is down!";}
     else if(digitalRead(2)==HIGH){
-      pos="Door is not locked!";}
+      pos="autolight is up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/living/light/0") != -1){
+  else if (req.indexOf("/light/0") != -1){
     digitalWrite(4, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now low";}
     
-  else if (req.indexOf("/living/light/1") != -1){
+  else if (req.indexOf("/light/1") != -1){
     digitalWrite(4, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_light is now high ";}
+
+  else if (req.indexOf("/light/check/1") != -1){    
+    if(digitalRead(4)==LOW){
+      pos="light off!";}
+    else if(digitalRead(4)==HIGH){
+      pos="light on!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/living/fan/0") != -1){
+  else if (req.indexOf("/fan/0") != -1){
     digitalWrite(5, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now low";}
     
-  else if (req.indexOf("/living/fan/1") != -1){
+  else if (req.indexOf("/fan/1") != -1){
     digitalWrite(5, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLiv_fan is now high ";}
+
+  else if (req.indexOf("/fan/check/1") != -1){    
+    if(digitalRead(5)==LOW){
+      pos="fan off!";}
+    else if(digitalRead(5)==HIGH){
+      pos="fan on!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/living/temp/check/1") != -1){
+  else if (req.indexOf("/temp/check/1") != -1){
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     float hic = dht.computeHeatIndex(t, h, false);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
     
-  else if (req.indexOf("/living/humid/check/1") != -1){
+  else if (req.indexOf("/humid/check/1") != -1){
     float h = dht.readHumidity();
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(h);}
     
-  else if (req.indexOf("/living/pir/0") != -1){
+  else if (req.indexOf("/pir/0") != -1){
     digitalWrite(12, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
     
-  else if (req.indexOf("/living/pir/1") != -1){
+  else if (req.indexOf("/pir/1") != -1){
     digitalWrite(12, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
+
+  else if (req.indexOf("/pir/check/1") != -1){    
+    if(digitalRead(12)==LOW){
+      pos="pir is down!";}
+    else if(digitalRead(12)==HIGH){
+      pos="pir is up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/living/temp/0") != -1){
+  else if (req.indexOf("/temp/0") != -1){
     digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
     
-  else if (req.indexOf("/living/temp/1") != -1){
+  else if (req.indexOf("/temp/1") != -1){
     digitalWrite(16, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
+
+  else if (req.indexOf("/temprelay/check/1") != -1){    
+    if(digitalRead(12)==LOW){
+      pos="temprelay is down!";}
+    else if(digitalRead(12)==HIGH){
+      pos="temprelay is up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
-  else if (req.indexOf("/living/notification") != -1){
+  else if (req.indexOf("/notification") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
     
   else {
