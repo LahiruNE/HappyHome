@@ -3,7 +3,7 @@
 const char* ssid     = "JaraWifi";
 const char* password = "jaraz12345";
 
-const char* host = "192.168.43.185";
+const char* host = "192.168.43.242";
 
 void setup() {
   Serial.begin(115200);

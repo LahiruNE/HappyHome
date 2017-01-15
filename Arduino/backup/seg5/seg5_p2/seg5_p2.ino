@@ -8,6 +8,9 @@ String phoneNumber="+94716482041"; //phone number to which notification messages
 
 const char* host = "www.txtlocal.com";
 
+const int sensorMin = 0;     // rainSensor minimum
+const int sensorMax = 1024;  // rainSensor maximum
+
 WiFiServer server(80);
 
 static const char ntpServerName[] = "lk.pool.ntp.org";
@@ -20,19 +23,10 @@ boolean buzzer=false;
 boolean autoLight=false;
 boolean autoLightStatus=true;
 
-boolean smokeFirst=true;//smoke vars
-boolean smokeEnd=false;//smoke vars
-
-//sound Sensor vars
-int vibDetectedVal = HIGH; //where record our Sound Measurement
-boolean bAlarm = false;
-unsigned long lastVibDetectTime; // Record the time that measured a sound
-int vibAlarmTime = 500; // Number of milli seconds to keep the sound alarm high
-//sound sensor vars
-
+boolean lockLow = true;//rain vars
+boolean lockHigh = true;//rain vars
 
 String store_var="desc|stTime1|endTime1&";
-String store_var1="desc|stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
@@ -40,14 +34,14 @@ String printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
 void setup() {  
-  pinMode(4, OUTPUT);//door
-  pinMode(14, OUTPUT);//sound_Relay
-  pinMode(2,INPUT);//sound sensor
-  pinMode(5, INPUT);//autolight
+  pinMode(5,INPUT);//autolight
   pinMode(16, OUTPUT);//buzzer
-  digitalWrite(12, 0);//@ the begining smoke is not active
-  digitalWrite(14,0);//@ the begining sound sensor is not active
+  pinMode(14, OUTPUT);//rain_Relay
+  digitalWrite(2, 1);
+  digitalWrite(12, 0);//@ the begining phtocell is not active
+  digitalWrite(14,0);//@ the begining rain sensor is not active
   digitalWrite(16, 0);//From the begining buzzer is not active
+  digitalWrite(2, 1);
   
   Serial.begin(115200);
   delay(10);  
@@ -82,25 +76,27 @@ void setup() {
 time_t prevDisplay = 0;
 
 void loop() {
-  soundSensing();
-
   if(digitalRead(5)==HIGH){
     autoLight=true;   
   }else{
     autoLight=false;
     }
-    
+
+   
+  
+
+       
   // Check if a client has connected
   WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
+  //if (!client) {
+    //return;
+  //}
   
   // Wait until the client sends some data
-  Serial.println("new client");
-  while(!client.available()){
-    delay(1);
-  }
+ //Serial.println("new client");
+  //while(!client.available()){
+  //  delay(1);
+  //}
   
   // Read the first line of the request
   String req = client.readStringUntil('\r');
@@ -112,46 +108,32 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/door/0") != -1){
-    digitalWrite(4, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor locked!";}
-    
-  else if (req.indexOf("/door/1") != -1){
-    digitalWrite(4, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nDoor unlocked!";}
-    
-  else if (req.indexOf("/door/check/1") != -1){    
-    if(digitalRead(4)==LOW){
-      pos="Door is locked!";}
-    else if(digitalRead(4)==HIGH){
-      pos="Door is not locked!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}    
-  
-  else if (req.indexOf("/sound/0") != -1){
-    digitalWrite(14, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nKitchen_fan is now low";}
-    
-  else if (req.indexOf("/sound/1") != -1){
-    digitalWrite(14, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nKitchen_fan is now high ";}
 
-  else if (req.indexOf("/sound/check/1") != -1){    
+  if (req.indexOf("/rain/0") != -1){
+    digitalWrite(14, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLeakage Sensor Down";}
+    
+  else if (req.indexOf("/rain/1") != -1){
+    digitalWrite(14, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nLeakage Sensor Up";}
+
+  else if (req.indexOf("/rain/check/1") != -1){    
     if(digitalRead(14)==LOW){
-      pos="Vibration sensor down!";}
+      pos="Rain sensor down!";}
     else if(digitalRead(14)==HIGH){
-      pos="Vibration sensor up!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}  
+      pos="Rain sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;} 
 
   else if (req.indexOf("/buzzer") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
   
   else if (req.indexOf("/notification") != -1){
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var1+"&"+store_var2;}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
 
   else if (req.indexOf("/photocell/data") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(autoLightStatus)+","+String(autoLight);}
 
- else if (req.indexOf("/photocell/0") != -1){
+  else if (req.indexOf("/photocell/0") != -1){
     autoLightStatus=false;
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPhotocell sensor deactivated";}
 
@@ -163,7 +145,7 @@ void loop() {
   else {
     Serial.println("invalid request");
     client.stop();
-    return;
+    //return;
   }
   
   client.flush();
@@ -175,6 +157,90 @@ void loop() {
 
   // The client will actually be disconnected 
   // when the function returns and 'client' object is detroyed
+  
+//rain sensor
+  int sensorReading = analogRead(0);//rainSensor
+  int range = map(sensorReading, sensorMin, sensorMax, 0, 3);//map rainSensor readings
+
+    // rainSensor range value:
+  switch (range) {
+    case 0:    // Sensor getting wet  
+      buzzer=true;    
+      if(lockHigh){
+        Serial.println("Flood");
+        lockHigh=false;
+
+        
+        
+        store_var+="HeavyRain|";
+        store_var+= digitalClockDisplay();
+        store_var+= "|";
+
+        WiFiClient client;
+        const int httpPort = 80;
+        if (!client.connect(host, httpPort)) {
+          Serial.println("connection failed");
+          return;
+        }
+
+        String url = "/sendsmspost.php?uname=lahiruepa@gmail.com&pword=Lahiru@ucsc_1994&message=It's%20raining%20heavily!-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                  "Host: " + host + "\r\n" + 
+                  "Connection: close\r\n\r\n");
+        unsigned long timeout = millis();
+         while (client.available() == 0) {
+          if (millis() - timeout > 5000) {
+            client.stop();
+            return;
+          }
+        }
+         
+      Serial.print(store_var);
+         delay(50);
+        }
+      break;
+    case 1:    // Sensor getting wet
+      buzzer=true;      
+      if(lockLow){
+        Serial.println("Rain Warning");
+        lockLow=false;        
+        
+        store_var+="LightRain";
+        store_var+= digitalClockDisplay();
+        store_var+= "|";
+
+        WiFiClient client;
+        const int httpPort = 80;
+        if (!client.connect(host, httpPort)) {
+          Serial.println("connection failed");
+          return;
+        }
+
+        String url = "/sendsmspost.php?uname=lahiruepa@gmail.com&pword=Lahiru@ucsc_1994&message=Light%20rain%20detected!-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+
+        client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                  "Host: " + host + "\r\n" + 
+                  "Connection: close\r\n\r\n");
+        unsigned long timeout = millis();
+         while (client.available() == 0) {
+          if (millis() - timeout > 5000) {
+            client.stop();
+            return;
+          }
+        }
+         
+      Serial.print(store_var);
+         delay(50);
+        }
+      break;
+    case 2:    // Sensor dry - To shut this up delete the " Serial.println("Not Raining"); " below.
+      buzzer=false;
+      Serial.println("Not Raining");
+      lockLow=true;
+      lockHigh=true;
+      break;
+    }   
 
 }
 
@@ -261,64 +327,5 @@ void sendNTPpacket(IPAddress &address)
   Udp.endPacket();
 }
 
-//vibration sensor reading
-void soundSensing(){
-  vibDetectedVal = digitalRead (2) ; // read the vibration alarm time
-  
-  if (vibDetectedVal == LOW) // If hear a sound
-  {  
-    buzzer=true; //buzzer on
-    lastVibDetectTime = millis(); // record the time of the sound alarm
-    if (!bAlarm){
-      Serial.println("LOUD, LOUD");
-      bAlarm = true;
 
-      if (timeStatus() != timeNotSet) {
-            if (now() != prevDisplay) { //update the display only if time has changed
-                prevDisplay = now();
-                store_var2+="Sound Detected|";
-                store_var2+= digitalClockDisplay();
-                store_var2+= "|";
-
-                WiFiClient client;
-                const int httpPort = 80;
-                if (!client.connect(host, httpPort)) {
-                  Serial.println("connection failed");
-                  return;
-                }
-
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Unidentified%20sound%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
-
-                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                          "Host: " + host + "\r\n" + 
-                          "Connection: close\r\n\r\n");
-                unsigned long timeout = millis();
-                while (client.available() == 0) {
-                  if (millis() - timeout > 5000) {
-                    client.stop();
-                    return;
-                  }
-                }
-            }
-          }  
-    }
-  }
-  else
-  {
-    buzzer=false;//buzzer off
-    if( (millis()-lastVibDetectTime) > vibAlarmTime  &&  bAlarm){
-      Serial.println("quiet");
-      bAlarm = false;
-
-      if (timeStatus() != timeNotSet) {
-            if (now() != prevDisplay) { 
-                prevDisplay = now();
-                store_var2+= digitalClockDisplay();
-                store_var2+= "&";
-            }
-          }
-    }
-  }
-  }
- //vibration sensor reading ends
 

@@ -1,0 +1,11 @@
+light
+fan
+auto light
+smoke
+temp
+humid
+pir
+rain
+water level
+tank valve
+buzzer

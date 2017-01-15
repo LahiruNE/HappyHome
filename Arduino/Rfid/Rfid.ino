@@ -12,6 +12,8 @@ const char* ssid = "JaraWifi";
 const char* password = "jaraz12345";
 
 WiFiServer server(80);
+
+
  
 void setup() 
 {

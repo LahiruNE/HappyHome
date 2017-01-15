@@ -35,8 +35,8 @@ boolean curr=false;  //pir vars
 boolean smokeFirst=true;//smoke vars
 boolean smokeEnd=false;//smoke vars
 
-String store_var="stTime1|endTime1&";
-String store_var1="stTime1|endTime1&";
+String store_var="desc|stTime1|endTime1&";
+String store_var1="desc|stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
@@ -153,74 +153,11 @@ void loop() {
            Serial.println(store_var);              
            delay(50);
            }
-       }
-
-     //smokeSensor reading
-  if(1<0){//analogRead(A0)>100
-    buzzer=true;//buzzer on
-    if(smokeFirst){
-      smokeFirst=false;
-
-      if (timeStatus() != timeNotSet) {
-            if (now() != prevDisplay) { //update the display only if time has changed
-                prevDisplay = now();
-                store_var1+="Smoke detected|";
-                store_var1+= digitalClockDisplay();
-                store_var1+= "|";
-
-                WiFiClient client;
-                const int httpPort = 80;
-                if (!client.connect(host, httpPort)) {
-                  Serial.println("connection failed");
-                  return;
-                }
-
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
-
-                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                          "Host: " + host + "\r\n" + 
-                          "Connection: close\r\n\r\n");
-                unsigned long timeout = millis();
-                while (client.available() == 0) {
-                  if (millis() - timeout > 5000) {
-                    client.stop();
-                    return;
-                  }
-                }
-            }
-          }      
-         
-         delay(50);
-      }
-      smokeEnd=true;    
-    }
-  else{
-    buzzer=false;//buzzer off
-    smokeFirst=true;
-    if(smokeEnd){
-      if (timeStatus() != timeNotSet) {
-            if (now() != prevDisplay) { 
-                prevDisplay = now();
-                store_var1+= digitalClockDisplay();
-                store_var1+= "&";
-            }
-          }
-           Serial.println(store_var1);              
-           delay(50);
-      }
-    }
+       }  
        
   // Check if a client has connected
   WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
-  
-  // Wait until the client sends some data
-  Serial.println("new client");
-  while(!client.available()){
-    delay(1);
-  }
+ 
   
   // Read the first line of the request
   String req = client.readStringUntil('\r');
@@ -278,11 +215,11 @@ void loop() {
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
   else if (req.indexOf("/temp/check/1") != -1){
-    //digitalWrite(16, 1);
+    digitalWrite(16, 1);
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     float hic = dht.computeHeatIndex(t, h, false);
-    //digitalWrite(16, 0);
+    digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
     
   else if (req.indexOf("/humid/check/1") != -1){
@@ -306,6 +243,21 @@ void loop() {
       pos="pir is up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
+  else if (req.indexOf("/temp/0") != -1){
+    digitalWrite(16, 0);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
+    
+  else if (req.indexOf("/temp/1") != -1){
+    digitalWrite(16, 1);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
+
+  else if (req.indexOf("/temprelay/check/1") != -1){    
+    if(digitalRead(12)==LOW){
+      pos="temprelay is down!";}
+    else if(digitalRead(12)==HIGH){
+      pos="temprelay is up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
+
   else if (req.indexOf("/buzzer") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
     
@@ -315,7 +267,6 @@ void loop() {
   else {
     Serial.println("invalid request");
     client.stop();
-    return;
   }
   
   client.flush();
@@ -328,6 +279,60 @@ void loop() {
   // The client will actually be disconnected 
   // when the function returns and 'client' object is detroyed
 
+     //smokeSensor reading
+  if(analogRead(0)>100){
+    buzzer=true;//buzzer on
+    if(smokeFirst){
+      smokeFirst=false;
+
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { //update the display only if time has changed
+                prevDisplay = now();
+                store_var1+="Smoke detected|";
+                store_var1+= digitalClockDisplay();
+                store_var1+= "|";
+
+                WiFiClient client;
+                const int httpPort = 80;
+                if (!client.connect(host, httpPort)) {
+                  Serial.println("connection failed");
+                  return;
+                }
+
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+
+                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                          "Host: " + host + "\r\n" + 
+                          "Connection: close\r\n\r\n");
+                unsigned long timeout = millis();
+                while (client.available() == 0) {
+                  if (millis() - timeout > 5000) {
+                    client.stop();
+                    return;
+                  }
+                }
+            }
+          }      
+         
+         delay(50);
+      }
+      smokeEnd=true;    
+    }
+  else{
+    buzzer=false;//buzzer off
+    smokeFirst=true;
+    if(smokeEnd){
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { 
+                prevDisplay = now();
+                store_var1+= digitalClockDisplay();
+                store_var1+= "&";
+            }
+          }
+           Serial.println(store_var1);              
+           delay(50);
+      }
+    }
 }
 
 String digitalClockDisplay()

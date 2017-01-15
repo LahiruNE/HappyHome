@@ -23,13 +23,20 @@ const float timeZone = 5.50;
 WiFiUDP Udp;
 unsigned int localPort = 8888;  // local port to listen for UDP packets
 
+boolean buzzer=false;
+
 int calibrationTime = 30;  //pir vars
 long unsigned int lowIn;
 long unsigned int pause = 5000; 
 boolean lockLow = true;
 boolean takeLowTime;
 boolean curr=false;  //pir vars
-String store_var="stTime1|endTime1&";
+
+boolean smokeFirst=true;//smoke vars
+boolean smokeEnd=false;//smoke vars
+
+String store_var="desc|stTime1|endTime1&";
+String store_var1="desc|stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
@@ -39,7 +46,7 @@ void sendNTPpacket(IPAddress &address);
 void setup() {
   dht.begin();
   
-  pinMode(2, OUTPUT);//autoLight
+  pinMode(2, OUTPUT);//smoke_Relay
   pinMode(4, OUTPUT);//light
   pinMode(5, OUTPUT);//fan
   pinMode(14, INPUT);//PIR
@@ -86,6 +93,7 @@ time_t prevDisplay = 0;
 void loop() {
    //PIR reading...
  if(digitalRead(14) == HIGH){
+  buzzer=true;
     if(lockLow && curr){
          lockLow = false;            
          Serial.println("---");
@@ -124,6 +132,7 @@ void loop() {
  } 
 
  if(digitalRead(14) == LOW){ 
+    buzzer=false;
     curr=true;
     if(takeLowTime){
         lowIn = millis();          //save the time of the transition from high to LOW
@@ -145,6 +154,61 @@ void loop() {
            delay(50);
            }
        }
+
+     //smokeSensor reading
+  if(1<0){//analogRead(A0)>100
+    buzzer=true;//buzzer on
+    if(smokeFirst){
+      smokeFirst=false;
+
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { //update the display only if time has changed
+                prevDisplay = now();
+                store_var1+="Smoke detected|";
+                store_var1+= digitalClockDisplay();
+                store_var1+= "|";
+
+                WiFiClient client;
+                const int httpPort = 80;
+                if (!client.connect(host, httpPort)) {
+                  Serial.println("connection failed");
+                  return;
+                }
+
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+
+                client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                          "Host: " + host + "\r\n" + 
+                          "Connection: close\r\n\r\n");
+                unsigned long timeout = millis();
+                while (client.available() == 0) {
+                  if (millis() - timeout > 5000) {
+                    client.stop();
+                    return;
+                  }
+                }
+            }
+          }      
+         
+         delay(50);
+      }
+      smokeEnd=true;    
+    }
+  else{
+    buzzer=false;//buzzer off
+    smokeFirst=true;
+    if(smokeEnd){
+      if (timeStatus() != timeNotSet) {
+            if (now() != prevDisplay) { 
+                prevDisplay = now();
+                store_var1+= digitalClockDisplay();
+                store_var1+= "&";
+            }
+          }
+           Serial.println(store_var1);              
+           delay(50);
+      }
+    }
        
   // Check if a client has connected
   WiFiClient client = server.available();
@@ -168,20 +232,20 @@ void loop() {
   int checkPos;
   int val;
   String s;
-  if (req.indexOf("/autolight/0") != -1){
+  if (req.indexOf("/smoke/0") != -1){
     digitalWrite(2, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nautolight locked!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Down";}
     
-  else if (req.indexOf("/autolight/1") != -1){
+  else if (req.indexOf("/smoke/1") != -1){
     digitalWrite(2, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nautolight unlocked!";}
-    
-  else if (req.indexOf("/autolight/check/1") != -1){    
-    if(digitalRead(2)==LOW){
-      pos="autolight is down!";}
-    else if(digitalRead(2)==HIGH){
-      pos="autolight is up!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nSmoke Sensor Up";}
+
+  else if (req.indexOf("/smoke/check/1") != -1){    
+    if(digitalRead(12)==LOW){
+      pos="Smoke sensor down!";}
+    else if(digitalRead(12)==HIGH){
+      pos="Smoke sensor up!";}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;} 
     
   else if (req.indexOf("/light/0") != -1){
     digitalWrite(4, 0);
@@ -214,13 +278,17 @@ void loop() {
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
   else if (req.indexOf("/temp/check/1") != -1){
+    digitalWrite(16, 1);
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     float hic = dht.computeHeatIndex(t, h, false);
+    digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
     
   else if (req.indexOf("/humid/check/1") != -1){
+    digitalWrite(16, 1);
     float h = dht.readHumidity();
+    digitalWrite(16, 1);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(h);}
     
   else if (req.indexOf("/pir/0") != -1){
@@ -252,9 +320,12 @@ void loop() {
     else if(digitalRead(12)==HIGH){
       pos="temprelay is up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
+
+  else if (req.indexOf("/buzzer") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
     
   else if (req.indexOf("/notification") != -1){
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var;}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var+"&"+store_var1;}
     
   else {
     Serial.println("invalid request");

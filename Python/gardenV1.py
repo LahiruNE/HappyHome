@@ -2,16 +2,16 @@ import httplib
 
 def light_on():
     dataList={}
-
+#clear
     with open("../log/log.txt") as log:
         for line in log:
             if line!="":
                 value=line.split("=")[1].split('\n')[0].split("'")[1]
                 key=line.split("=")[0]
                 dataList[key]=value
-    
+ #clear   
     conn = httplib.HTTPConnection(dataList['gardenV1_part1_IP'])
-    conn.request("GET", "/garden/light/1")
+    conn.request("GET", "/response")
     r1 = conn.getresponse()
     print r1.read()
 

@@ -35,8 +35,8 @@ boolean curr=false;  //pir vars
 boolean smokeFirst=true;//smoke vars
 boolean smokeEnd=false;//smoke vars
 
-String store_var="stTime1|endTime1&";
-String store_var1="stTime1|endTime1&";
+String store_var="desc|stTime1|endTime1&";
+String store_var1="desc|stTime1|endTime1&";
 
 time_t getNtpTime();
 String digitalClockDisplay();
@@ -278,11 +278,11 @@ void loop() {
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
     
   else if (req.indexOf("/temp/check/1") != -1){
-    //digitalWrite(16, 1);
+    digitalWrite(16, 1);
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     float hic = dht.computeHeatIndex(t, h, false);
-    //digitalWrite(16, 0);
+    digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
     
   else if (req.indexOf("/humid/check/1") != -1){
@@ -305,7 +305,7 @@ void loop() {
     else if(digitalRead(12)==HIGH){
       pos="pir is up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
-    
+
   else if (req.indexOf("/buzzer") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
     
