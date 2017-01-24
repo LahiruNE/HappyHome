@@ -120,7 +120,7 @@ void loop() {
       pos="Rain sensor up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;} 
 
-  else if (req.indexOf("/buzzer") != -1){
+  else if (req.indexOf("/buzzer/check/1") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
 
   else if (req.indexOf("/buzzer/1") != -1){
@@ -187,7 +187,7 @@ void loop() {
           return;
         }
 
-        String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=Dell1994&message=It's%20raining%20heavily!.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+        String url = "/sendsmspost.php?uname=happyhome.ucsc@gmail.com&pword=Happyhome.ucsc1994&message=It's%20raining%20heavily!.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
         client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                   "Host: " + host + "\r\n" + 
@@ -221,7 +221,7 @@ void loop() {
           return;
         }
 
-        String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=Dell1994&message=Light%20rain%detected!.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+        String url = "/sendsmspost.php?uname=happyhome.ucsc@gmail.com&pword=Happyhome.ucsc1994&message=Light%20rain%detected!.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
         client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                   "Host: " + host + "\r\n" + 

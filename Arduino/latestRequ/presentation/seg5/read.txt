@@ -1,0 +1,9 @@
+light
+fan
+auto light
+smoke
+temp
+humid
+pir
+rain
+buzzer

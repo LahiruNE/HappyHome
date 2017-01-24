@@ -30,12 +30,13 @@ long unsigned int lowIn;
 long unsigned int pause = 5000; 
 boolean lockLow = true;
 boolean takeLowTime;
-boolean curr=false;  //pir vars
+boolean curr=false; 
+boolean pir=false;//pir vars
 
 boolean smokeFirst=true;//smoke vars
 boolean smokeEnd=false;//smoke vars
 
-String store_var="desc|stTime1|endTime1&";
+String store_var="desc|stTime|endTime&";
 String store_var1="desc|stTime1|endTime1&";
 
 time_t getNtpTime();
@@ -93,14 +94,17 @@ time_t prevDisplay = 0;
 void loop() {
    //PIR reading...
  if(digitalRead(14) == HIGH){
-  buzzer=true;
-    if(lockLow && curr){
+  if(curr==true && pir==true){
+    buzzer=true;
+    }  
+    if(lockLow==true && curr==true && pir==true){
          lockLow = false;            
-         Serial.println("---");
+         Serial.println(buzzer);
          
          if (timeStatus() != timeNotSet) {
             if (now() != prevDisplay) { //update the display only if time has changed
                 prevDisplay = now();
+                store_var+="Movement detected|";
                 store_var+= digitalClockDisplay();
                 store_var+= "|";
 
@@ -111,7 +115,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=jason.kkelly@zoho.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+                String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -132,8 +136,8 @@ void loop() {
  } 
 
  if(digitalRead(14) == LOW){ 
-    buzzer=false;
-    curr=true;
+    if(pir==true){
+      curr=true;}
     if(takeLowTime){
         lowIn = millis();          //save the time of the transition from high to LOW
         takeLowTime = false;       //make sure this is only done at the start of a LOW phase
@@ -175,7 +179,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+               String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=Dell1994&message=Smoke%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -195,7 +199,7 @@ void loop() {
       smokeEnd=true;    
     }
   else{
-    buzzer=false;//buzzer off
+    
     smokeFirst=true;
     if(smokeEnd){
       if (timeStatus() != timeNotSet) {
@@ -282,21 +286,25 @@ void loop() {
     float h = dht.readHumidity();
     float t = dht.readTemperature();
     float hic = dht.computeHeatIndex(t, h, false);
+    delay(1000);
     digitalWrite(16, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(t)+","+String(hic);}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nReal Temp:"+String(t)+",Feel:"+String(hic);}
     
   else if (req.indexOf("/humid/check/1") != -1){
     digitalWrite(16, 1);
     float h = dht.readHumidity();
-    digitalWrite(16, 1);
+    delay(1000);
+    digitalWrite(16, 0);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(h);}
     
   else if (req.indexOf("/pir/0") != -1){
     digitalWrite(12, 0);
+    pir=false;
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Down";}
     
   else if (req.indexOf("/pir/1") != -1){
     digitalWrite(12, 1);
+    pir=true;
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nPIR Sensor Up";}
 
   else if (req.indexOf("/pir/check/1") != -1){    
@@ -321,11 +329,16 @@ void loop() {
       pos="temprelay is up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
 
-  else if (req.indexOf("/buzzer") != -1){
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
+  else if (req.indexOf("/buzzer/check/1") != -1){
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);
+
+    if(buzzer==true){
+      buzzer=false;
+      }
+    }
     
   else if (req.indexOf("/notification") != -1){
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var+"&"+store_var1;}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var+"-"+store_var1;}
     
   else {
     Serial.println("invalid request");

@@ -1,0 +1,11 @@
+light
+fan
+auto light
+smoke
+temp
+humid
+pir
+vibration
+soil moisture
+soil valve
+buzzer

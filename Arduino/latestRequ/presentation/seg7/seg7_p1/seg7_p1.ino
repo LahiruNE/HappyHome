@@ -111,7 +111,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+                String url = "/sendsmspost.php?uname=jason.kkelly@zoho.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -175,7 +175,7 @@ void loop() {
                   return;
                 }
 
-               String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=UCsc12345678&message=Smoke%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+                String url = "/sendsmspost.php?uname=lahiruepa@zoho.com&pword=Idontknow94&message=Smoke%20detected%20in%20the%20kitchen%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -305,27 +305,12 @@ void loop() {
     else if(digitalRead(12)==HIGH){
       pos="pir is up!";}
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
-    
-  else if (req.indexOf("/temp/0") != -1){
-    digitalWrite(16, 0);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Down";}
-    
-  else if (req.indexOf("/temp/1") != -1){
-    digitalWrite(16, 1);
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nTemp & Humid Sensor Up";}
-
-  else if (req.indexOf("/temprelay/check/1") != -1){    
-    if(digitalRead(12)==LOW){
-      pos="temprelay is down!";}
-    else if(digitalRead(12)==HIGH){
-      pos="temprelay is up!";}
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+pos;}
 
   else if (req.indexOf("/buzzer") != -1){
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+String(buzzer);}
     
   else if (req.indexOf("/notification") != -1){
-    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var+"-"+store_var1;}
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n"+store_var+"&"+store_var1;}
     
   else {
     Serial.println("invalid request");

@@ -111,7 +111,7 @@ void loop() {
                   return;
                 }
 
-                String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=Dell1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+                String url = "/sendsmspost.php?uname=happyhome.ucsc@gmail.com&pword=Happyhome.ucsc1994&message=Unidentified%20movement%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
@@ -175,7 +175,7 @@ void loop() {
                   return;
                 }
 
-               String url = "/sendsmspost.php?uname=hirunikegalle@gmail.com&pword=UCsc12345678&message=Smoke%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
+               String url = "/sendsmspost.php?uname=happyhome.ucsc@gmail.com&pword=Happyhome.ucsc1994&message=Smoke%20detected%20in%20the%20living%20room.-HomeAssistent&selectednums="+phoneNumber+"&info=1&test=0";
 
                 client.print(String("GET ") + url + " HTTP/1.1\r\n" +
                           "Host: " + host + "\r\n" + 
